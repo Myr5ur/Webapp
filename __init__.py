@@ -1,0 +1,67 @@
+import os
+
+import click
+from flask import Flask, app, send_from_directory
+
+from .models import DATABASE, Product, ALL_MODELS
+from .products import fetch_products
+
+
+def load_products():
+    products = fetch_products()
+    for p in products:
+        Product.insert(
+            id=p["id"],
+            name=p["name"],
+            description=p.get("description", ""),
+            price=p["price"],
+            in_stock=p["in_stock"],
+            weight=p.get("weight", 0),
+            image=p.get("image", ""),
+        ).on_conflict_replace().execute()
+    print(f"[INFO] {len(products)} produit(s) chargé(s).")
+
+
+def init_database(load=True):
+    DATABASE.connect(reuse_if_open=True)
+    DATABASE.create_tables(ALL_MODELS)
+    if load:
+        load_products()
+    if not DATABASE.is_closed():
+        DATABASE.close()
+
+
+def create_app(skip_product_load=False):
+    app = Flask(__name__)
+
+    @app.before_request
+    def _db_connect():
+        if DATABASE.is_closed():
+            DATABASE.connect()
+
+    @app.teardown_request
+    def _db_close(exc):
+        if not DATABASE.is_closed():
+            DATABASE.close()
+
+    @app.cli.command("init-db")
+    def init_db():
+        init_database(load=True)
+        click.echo("Base de données initialisée.")
+
+    @app.route("/test")
+    def test_page():
+        return send_from_directory(app.static_folder, "test.html")
+    
+    @app.route("/boutique")
+    def boutique_page():
+        return send_from_directory(app.static_folder, "boutique.html")
+
+   
+    if not skip_product_load and not os.environ.get("INF349_SKIP_LOAD"):
+        init_database(load=True)
+
+    from .routes import bp
+    app.register_blueprint(bp)
+
+    return app
