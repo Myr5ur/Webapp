@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Test API</title>
+</head>
+<body>
+
+<h1>Page de test - API commandes</h1>
+
+<hr>
+
+<h2>1. Produits (GET /)</h2>
+<button onclick="getProduits()">Charger les produits</button>
+<div id="produits"></div>
+
+<hr>
+
+<h2>2. Creer une commande (POST /order)</h2>
+<label>Id produit : <input id="pid" type="number" value="1"></label><br>
+<label>Quantite : <input id="qte" type="number" value="1"></label><br>
+<button onclick="creerCommande()">Creer</button>
+<pre id="resCreer"></pre>
+
+<hr>
+
+<h2>Commande selectionnee</h2>
+<label>Choisir une commande :
+  <select id="choixCommande">
+    <option value="">-- aucune --</option>
+  </select>
+</label>
+<button onclick="rafraichirListe()">Rafraichir les statuts</button>
+
+<hr>
+
+<h2>3. Voir la commande (GET /order/&lt;id&gt;)</h2>
+<button onclick="voirCommande()">Voir</button>
+<pre id="resVoir"></pre>
+
+<hr>
+
+<h2>4. Infos client (PUT /order/&lt;id&gt;)</h2>
+<label>Email : <input id="email" value="test@uqac.ca"></label><br>
+<label>Pays : <input id="pays" value="Canada"></label><br>
+<label>Adresse : <input id="adresse" value="201, rue President-Kennedy"></label><br>
+<label>Code postal : <input id="cp" value="G7X 3Y7"></label><br>
+<label>Ville : <input id="ville" value="Chicoutimi"></label><br>
+<label>Province :
+  <select id="province">
+    <option value="QC">QC</option>
+    <option value="ON">ON</option>
+    <option value="AB">AB</option>
+    <option value="BC">BC</option>
+    <option value="NS">NS</option>
+  </select>
+</label><br>
+<button onclick="putInfos()">Envoyer</button>
+<pre id="resInfos"></pre>
+
+<hr>
+
+<h2>5. Payer (PUT /order/&lt;id&gt;)</h2>
+<label>Nom : <input id="ccNom" value="John Doe"></label><br>
+<label>Numero :
+  <select id="ccNum">
+    <option value="4242 4242 4242 4242">4242... (acceptee)</option>
+    <option value="4000 0000 0000 0002">4000... (refusee)</option>
+  </select>
+</label><br>
+<label>Mois : <input id="ccMois" type="number" value="9"></label><br>
+<label>Annee : <input id="ccAnnee" type="number" value="2026"></label><br>
+<label>CVV : <input id="ccCvv" value="123"></label><br>
+<button onclick="payer()">Payer</button>
+<pre id="resPayer"></pre>
+
+<script>
+var commandes = [];
+
+function commandeChoisie() {
+  var val = document.getElementById("choixCommande").value;
+  if (!val) {
+    alert("Selectionne d'abord une commande");
+    return null;
+  }
+  return val;
+}
+
+function ajouterCommande(id) {
+  if (commandes.indexOf(id) === -1) {
+    commandes.push(id);
+  }
+  rafraichirListe(id);
+}
+
+function rafraichirListe(selectionner) {
+  var select = document.getElementById("choixCommande");
+  var courant = selectionner || select.value;
+
+  var promesses = commandes.map(function(id) {
+    return fetch("/order/" + id)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var paye = data.order ? data.order.paid : false;
+        return { id: id, paid: paye };
+      });
+  });
+
+  Promise.all(promesses).then(function(liste) {
+    select.innerHTML = "<option value=''>-- aucune --</option>";
+    liste.forEach(function(c) {
+      var statut = c.paid ? "payee" : "non payee";
+      var opt = document.createElement("option");
+      opt.value = c.id;
+      opt.textContent = "Commande #" + c.id + " (" + statut + ")";
+      select.appendChild(opt);
+    });
+    if (courant) { select.value = courant; }
+  });
+}
+
+function afficher(id, statut, data) {
+  document.getElementById(id).textContent = statut + "\n" + JSON.stringify(data, null, 2);
+}
+
+function getProduits() {
+  fetch("/")
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var html = "<table border='1' cellpadding='5' cellspacing='0'>";
+      html += "<tr><th>Id</th><th>Nom</th><th>Prix</th><th>Poids</th><th>En stock</th></tr>";
+      data.products.forEach(function(p) {
+        html += "<tr>";
+        html += "<td>" + p.id + "</td>";
+        html += "<td>" + p.name + "</td>";
+        html += "<td>" + p.price + "</td>";
+        html += "<td>" + p.weight + " g</td>";
+        html += "<td>" + (p.in_stock ? "oui" : "non") + "</td>";
+        html += "</tr>";
+      });
+      html += "</table>";
+      html += "<p>" + data.products.length + " produit(s)</p>";
+      document.getElementById("produits").innerHTML = html;
+    });
+}
+
+function creerCommande() {
+  var body = {
+    product: {
+      id: parseInt(document.getElementById("pid").value),
+      quantity: parseInt(document.getElementById("qte").value)
+    }
+  };
+  fetch("/order", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  })
+    .then(function(r) { return r.json().then(function(d) { return [r.status, d]; }); })
+    .then(function(res) {
+      if (res[1].order) {
+        ajouterCommande(res[1].order.id);
+        document.getElementById("choixCommande").value = res[1].order.id;
+      }
+      afficher("resCreer", res[0], res[1]);
+    });
+}
+
+function voirCommande() {
+  var id = commandeChoisie();
+  if (!id) { return; }
+  fetch("/order/" + id)
+    .then(function(r) { return r.json().then(function(d) { return [r.status, d]; }); })
+    .then(function(res) { afficher("resVoir", res[0], res[1]); });
+}
+
+function putInfos() {
+  var id = commandeChoisie();
+  if (!id) { return; }
+  var body = {
+    order: {
+      email: document.getElementById("email").value,
+      shipping_information: {
+        country: document.getElementById("pays").value,
+        address: document.getElementById("adresse").value,
+        postal_code: document.getElementById("cp").value,
+        city: document.getElementById("ville").value,
+        province: document.getElementById("province").value
+      }
+    }
+  };
+  fetch("/order/" + id, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  })
+    .then(function(r) { return r.json().then(function(d) { return [r.status, d]; }); })
+    .then(function(res) { afficher("resInfos", res[0], res[1]); });
+}
+
+function payer() {
+  var id = commandeChoisie();
+  if (!id) { return; }
+  var body = {
+    credit_card: {
+      name: document.getElementById("ccNom").value,
+      number: document.getElementById("ccNum").value,
+      expiration_month: parseInt(document.getElementById("ccMois").value),
+      expiration_year: parseInt(document.getElementById("ccAnnee").value),
+      cvv: document.getElementById("ccCvv").value
+    }
+  };
+  fetch("/order/" + id, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  })
+    .then(function(r) { return r.json().then(function(d) { return [r.status, d]; }); })
+    .then(function(res) {
+      afficher("resPayer", res[0], res[1]);
+      rafraichirListe();
+    });
+}
+</script>
+
+</body>
+</html>
