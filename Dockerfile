@@ -9,7 +9,7 @@ ENV PYTHONBUFFERED=1
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-COPY ..
+COPY . .
 
 EXPOSE 5000
 
