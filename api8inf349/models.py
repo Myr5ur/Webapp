@@ -16,7 +16,7 @@ DATABASE = PostgresqlDatabase(
 
 class BaseModel(Model):
     class Meta:
-        database = DATABASE
+        database = DATABASE,
 
 
 class Product(BaseModel):
@@ -26,7 +26,8 @@ class Product(BaseModel):
     price = FloatField()
     in_stock = BooleanField()
     weight = IntegerField()
-    image = CharField()
+    image = CharField(),
+
 
 
 class ShippingInformation(BaseModel):
@@ -34,7 +35,7 @@ class ShippingInformation(BaseModel):
     address = CharField()
     postal_code = CharField()
     city = CharField()
-    province = CharField()
+    province = CharField(),
 
 
 class CreditCard(BaseModel):
@@ -42,19 +43,17 @@ class CreditCard(BaseModel):
     first_digits = CharField()
     last_digits = CharField()
     expiration_year = IntegerField()
-    expiration_month = IntegerField()
+    expiration_month = IntegerField(),
 
 
 class Transaction(BaseModel):
     id = CharField(primary_key=True)  
     success = BooleanField()
-    amount_charged = IntegerField(null=True)
+    amount_charged = IntegerField(null=True),
 
 
 class Order(BaseModel):
-    id = AutoField() 
-    product = ForeignKeyField(Product, backref="orders", null=True)
-    quantity = IntegerField(default=1)
+    id = AutoField()
     email = CharField(null=True)
     paid = BooleanField(default=False)
     total_price = FloatField(default=0)
@@ -63,5 +62,9 @@ class Order(BaseModel):
     credit_card = ForeignKeyField(CreditCard, null=True)
     transaction = ForeignKeyField(Transaction, null=True)
 
+class OrderProduct(BaseModel):
+    order = ForeignKeyField(Order, backref="items")
+    product = ForeignKeyField(Product)
+    quantity = IntegerField()
 
-ALL_MODELS = [Product, ShippingInformation, CreditCard, Transaction, Order]
+ALL_MODELS = [Product, ShippingInformation, CreditCard, Transaction, Order, OrderProduct]
