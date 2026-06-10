@@ -1,7 +1,7 @@
 
 from flask import Blueprint, jsonify, request, redirect, url_for
 
-from .models import Product, Order, ShippingInformation, CreditCard, Transaction
+from .models import Product, Order, ShippingInformation, CreditCard, Transaction, OrderProduct
 from .payment import pay
 
 bp = Blueprint("bp", __name__)
@@ -44,10 +44,11 @@ def order_to_dict(order):
         "email": order.email,
         "paid": order.paid,
         "shipping_price": order.shipping_price,
-        "product": {
-            "id": order.product.id,
-            "quantity": order.quantity,
-        },
+        "product": [
+            {"id": item.product.id,"quantity": item.quantity,
+            }
+            for item in order.order.items
+        ],
         "shipping_information": {
             "country": si.country,
             "address": si.address,
@@ -95,40 +96,58 @@ def list_products():
 @bp.route("/order", methods=["POST"])
 def create_order():
     data = request.get_json(silent=True) or {}
-    product_data = data.get("product")
+   
+    if "products" in data:
+        items = data["products"]
+    elif "product" in data:
+        items = [data["product"]]
+    else:
+        items = None
 
-    if (not isinstance(product_data, dict)
-            or "id" not in product_data
-            or "quantity" not in product_data):
+    if not items or not isinstance(items, list):
         return error_response(
             "product", "missing-fields",
-            "La création d'une commande nécessite un produit", 422)
+            "La création d'une commande nécessite au moins un produit", 422)
+    
+    total_price = 0
+    total_weight = 0
+    produits_valides = []
 
-    quantity = product_data["quantity"]
-    if not isinstance(quantity, int) or quantity < 1:
-        return error_response(
-            "product", "missing-fields",
-            "La création d'une commande nécessite un produit", 422)
+    for item in items:
+        if (not isinstance(item, dict)
+                or "id" not in item or "quantity" not in item):
+            return error_response(
+                "product", "missing-fields",
+                "La création d'une commande nécessite un produit", 422)
 
-    product = Product.get_or_none(Product.id == product_data["id"])
-    if product is None:
-        return error_response(
-            "product", "missing-fields",
-            "Le produit demandé n'existe pas", 422)
+        quantity = item["quantity"]
+        if not isinstance(quantity, int) or quantity < 1:
+            return error_response(
+                "product", "missing-fields",
+                "La création d'une commande nécessite une quantité", 422)
 
-    if not product.in_stock:
-        return error_response(
-            "product", "out-of-inventory",
-            "Le produit demandé n'est pas en inventaire", 422)
+        product = Product.get_or_none(Product.id == item["id"])
+        if product is None:
+            return error_response(
+                "product", "missing-fields",
+                "Le produit demandé n'existe pas", 422)
 
-    total_price = product.price * quantity
-    total_weight = product.weight * quantity
+        if not product.in_stock:
+            return error_response(
+                "product", "out-of-inventory",
+                "Le produit demandé n'est pas en inventaire", 422)
+
+        total_price += product.price * quantity
+        total_weight += product.weight * quantity
+        produits_valides.append((product, quantity))
+    
     order = Order.create(
-        product=product,
-        quantity=quantity,
         total_price=total_price,
         shipping_price=compute_shipping(total_weight),
     )
+
+    for product, quantity in produits_valides:
+        OrderProduct.create(order=order, product=product, quantity=quantity)
 
     return redirect(url_for("bp.get_order", order_id=order.id), code=302)
 
