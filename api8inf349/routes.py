@@ -44,10 +44,10 @@ def order_to_dict(order):
         "email": order.email,
         "paid": order.paid,
         "shipping_price": order.shipping_price,
-        "product": [
+        "products": [
             {"id": item.product.id,"quantity": item.quantity,
             }
-            for item in order.order.items
+            for item in order.items
         ],
         "shipping_information": {
             "country": si.country,
