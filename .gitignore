@@ -1,5 +1,5 @@
 *db
-venv/
+env_web/
 webapp/
 __pycache__/
 *.pyc

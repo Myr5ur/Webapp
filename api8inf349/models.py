@@ -1,9 +1,17 @@
+import os
+
 from peewee import (
-    SqliteDatabase, Model, IntegerField, CharField, TextField,
+    PostgresqlDatabase, Model, IntegerField, CharField, TextField,
     FloatField, BooleanField, AutoField, ForeignKeyField,
 )
 
-DATABASE = SqliteDatabase("inf349.db")
+DATABASE = PostgresqlDatabase(
+    os.environ.get("DB_NAME", "api8inf349"),
+    user=os.environ.get("DB_USER", "user"),
+    password=os.environ.get("DB_PASSWORD", "password"),
+    host=os.environ.get("DB_HOST", "localhost"),
+    port=int(os.environ.get("DB_PORT", 5432)),
+)
 
 
 class BaseModel(Model):

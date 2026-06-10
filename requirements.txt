@@ -1,5 +1,5 @@
 Flask
 peewee
-psycopg2
+psycopg2-binary
 rq
 redis
