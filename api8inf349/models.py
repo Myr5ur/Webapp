@@ -16,7 +16,7 @@ DATABASE = PostgresqlDatabase(
 
 class BaseModel(Model):
     class Meta:
-        database = DATABASE,
+        database = DATABASE
 
 
 class Product(BaseModel):
@@ -26,7 +26,7 @@ class Product(BaseModel):
     price = FloatField()
     in_stock = BooleanField()
     weight = IntegerField()
-    image = CharField(),
+    image = CharField()
 
 
 
@@ -35,7 +35,7 @@ class ShippingInformation(BaseModel):
     address = CharField()
     postal_code = CharField()
     city = CharField()
-    province = CharField(),
+    province = CharField()
 
 
 class CreditCard(BaseModel):
@@ -43,13 +43,13 @@ class CreditCard(BaseModel):
     first_digits = CharField()
     last_digits = CharField()
     expiration_year = IntegerField()
-    expiration_month = IntegerField(),
+    expiration_month = IntegerField()
 
 
 class Transaction(BaseModel):
     id = CharField(primary_key=True)  
     success = BooleanField()
-    amount_charged = IntegerField(null=True),
+    amount_charged = IntegerField(null=True)
 
 
 class Order(BaseModel):
