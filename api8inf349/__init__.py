@@ -12,13 +12,13 @@ def load_products():
     for p in products:
         Product.insert(
             id=p["id"],
-            name=p["name"],
-            description=p.get("description", ""),
+            name=p["name"].replace("\x00", ""), 
+            description=p.get("description", "").replace("\x00", ""),
             price=p["price"],
             in_stock=p["in_stock"],
             weight=p.get("weight", 0),
-            image=p.get("image", ""),
-        ).on_conflict_replace().execute()
+            image=p.get("image", "").replace("\x00", ""),
+        ).on_conflict(conflict_target=[Product.id], preserve=[Product.name, Product.description, Product.price, Product.in_stock, Product.weight, Product.image]).execute()
     print(f"[INFO] {len(products)} produit(s) chargé(s).")
 
 
