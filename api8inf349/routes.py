@@ -3,6 +3,7 @@ from flask import Blueprint, jsonify, request, redirect, url_for
 
 from .models import Product, Order, ShippingInformation, CreditCard, Transaction, OrderProduct
 from .payment import pay
+from .cache import cache_order, get_cached_order
 
 bp = Blueprint("bp", __name__)
 
@@ -154,6 +155,10 @@ def create_order():
 
 @bp.route("/order/<int:order_id>", methods=["GET"])
 def get_order(order_id):
+    cached = get_cached_order(order_id)
+    if cached is not None:
+        return jsonify({"order": cached})
+    
     order = Order.get_or_none(Order.id == order_id)
     if order is None:
         return error_response(
@@ -246,4 +251,7 @@ def update_order(order_id):
         order.transaction = transaction
         order.paid = True
         order.save()
-        return jsonify({"order": order_to_dict(order)})
+
+        order_dict = order_to_dict(order)
+        cache_order(order.id, order_dict)
+        return jsonify({"order": order_dict})
