@@ -50,6 +50,8 @@ class Transaction(BaseModel):
     id = CharField(primary_key=True)  
     success = BooleanField()
     amount_charged = IntegerField(null=True)
+    error_code = CharField(null=True)
+    error_name = CharField(null=True)
 
 
 class Order(BaseModel):
@@ -61,6 +63,7 @@ class Order(BaseModel):
     shipping_information = ForeignKeyField(ShippingInformation, null=True)
     credit_card = ForeignKeyField(CreditCard, null=True)
     transaction = ForeignKeyField(Transaction, null=True)
+    payment_in_progress = BooleanField(default=False)
 
 class OrderProduct(BaseModel):
     order = ForeignKeyField(Order, backref="items")

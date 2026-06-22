@@ -1,10 +1,13 @@
 import os 
 import json
-
+from rq import Queue
 import redis
 
 REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost")
 r = redis.from_url(REDIS_URL, protocol=2)
+
+
+task_queue = Queue(connection=r)
 
 
 def cache_order(order_id, order_dict):

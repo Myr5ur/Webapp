@@ -3,7 +3,8 @@ from flask import Blueprint, jsonify, request, redirect, url_for
 
 from .models import Product, Order, ShippingInformation, CreditCard, Transaction, OrderProduct
 from .payment import pay
-from .cache import cache_order, get_cached_order
+from .cache import cache_order, get_cached_order, task_queue
+from .tasks import process_payment
 
 bp = Blueprint("bp", __name__)
 
@@ -68,6 +69,10 @@ def order_to_dict(order):
             "id": tr.id,
             "success": tr.success,
             "amount_charged": tr.amount_charged,
+            "error": {
+                "code": tr.error_code,
+                "name": tr.error_name,
+            } if tr.error_code else {},
         } if tr else {},
     }
 
@@ -163,6 +168,10 @@ def get_order(order_id):
     if order is None:
         return error_response(
             "order", "not-found", "La commande n'existe pas", 404)
+    
+    if order.payment_in_progress:
+        return "", 202
+    
     return jsonify({"order": order_to_dict(order)})
 
 
@@ -197,7 +206,7 @@ def update_order(order_id):
             if not shipping.get(champ):
                 return error_response(
                     "order", "missing-fields",
-                    "Il manque un ou plusieurs champs obligatoires", 422)
+                    "Ilorddermanque un ou plusieurs champs obligatoires", 422)
 
         info = ShippingInformation.create(
             country=shipping["country"],
@@ -212,7 +221,7 @@ def update_order(order_id):
         return jsonify({"order": order_to_dict(order)})
     
     
-    if "credit_card" in data:
+#    if "credit_card" in data:
         if not order.email or order.shipping_information is None:
             return error_response(
                 "order", "missing-fields",
@@ -255,3 +264,27 @@ def update_order(order_id):
         order_dict = order_to_dict(order)
         cache_order(order.id, order_dict)
         return jsonify({"order": order_dict})
+    
+    if "credit_card" in data:
+        if not order.email or order.shipping_information is None:
+            return error_response(
+                "order", "missing-fields",
+                "Le paiement d'une commande nécessite que les informations "
+                "de livraison soient déjà complétées", 422)
+
+        if order.paid:
+            return error_response(
+                "order", "already-paid",
+                "Cette commande a déjà été payée", 422)
+
+        if order.payment_in_progress:
+            return error_response(
+                "order", "already-in-progress",
+                "Un paiement est déjà en cours pour cette commande", 409)
+
+        order.payment_in_progress = True
+        order.save()
+
+        task_queue.enqueue(process_payment, order.id, data["credit_card"])
+
+        return "", 202
