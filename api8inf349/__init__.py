@@ -36,13 +36,19 @@ def create_app(skip_product_load=False):
 
     @app.before_request
     def _db_connect():
-        if DATABASE.is_closed():
-            DATABASE.connect()
+        try:
+            if DATABASE.is_closed():
+                DATABASE.connect()
+        except Exception:
+            pass
 
     @app.teardown_request
     def _db_close(exc):
-        if not DATABASE.is_closed():
-            DATABASE.close()
+        try:    
+            if not DATABASE.is_closed():
+                DATABASE.close()
+        except Exception:
+            pass
 
     @app.cli.command("init-db")
     def init_db():
@@ -57,9 +63,6 @@ def create_app(skip_product_load=False):
     def boutique_page():
         return send_from_directory(app.static_folder, "boutique.html")
 
-   
-    if not skip_product_load and not os.environ.get("INF349_SKIP_LOAD"):
-        init_database(load=True)
 
     from .routes import bp
     app.register_blueprint(bp)
