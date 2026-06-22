@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Boutique INF349</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; max-width: 900px; margin: 0 auto;
+           padding: 20px; background: #f0f2f5; color: #222; }
+    h1 { text-align: center; color: #2c3e50; }
+    section { background: #fff; border-radius: 10px; padding: 20px; margin-bottom: 20px;
+              box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+    h2 { margin-top: 0; color: #34495e; border-bottom: 2px solid #eee; padding-bottom: 8px; }
+    input { margin: 4px 0; padding: 8px; width: 220px; border: 1px solid #ccc;
+            border-radius: 5px; }
+    label { display: inline-block; width: 130px; color: #555; }
+    button { padding: 9px 18px; margin-top: 10px; cursor: pointer; background: #3498db;
+             color: #fff; border: none; border-radius: 5px; font-size: 14px; }
+    button:hover { background: #2980b9; }
+    .grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+              gap: 12px; margin-top: 12px; }
+    .carte { border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px; text-align: center; }
+    .carte .nom { font-weight: bold; margin: 6px 0; font-size: 14px; }
+    .carte .prix { color: #27ae60; font-weight: bold; }
+    .rupture { color: #e74c3c; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    td { padding: 6px 10px; border-bottom: 1px solid #eee; }
+    td.cle { font-weight: bold; color: #555; width: 200px; }
+    .statut { padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: bold; }
+    .ok { background: #d5f5e3; color: #1e8449; }
+    .attente { background: #fef9e7; color: #b7950b; }
+    .erreur { background: #fadbd8; color: #c0392b; }
+    pre { background: #f8f9fa; padding: 10px; border-radius: 5px; font-size: 12px;
+          overflow-x: auto; color: #777; }
+  </style>
+</head>
+<body>
+  <h1>🛒 Boutique INF349</h1>
+
+  <section>
+    <h2>1. Produits</h2>
+    <button onclick="chargerProduits()">Voir les produits</button>
+    <div id="produits" class="grille"></div>
+  </section>
+
+  <section>
+    <h2>2. Créer une commande</h2>
+    <label>ID produit :</label><input id="prodId" type="number" value="1"><br>
+    <label>Quantité :</label><input id="prodQte" type="number" value="1"><br>
+    <button onclick="creerCommande()">Créer la commande</button>
+    <div id="creation"></div>
+  </section>
+
+  <section>
+    <h2>3. Adresse de livraison</h2>
+    <label>N° commande :</label><input id="orderId" type="number"><br>
+    <label>Email :</label><input id="email" value="jgnault@uqac.ca"><br>
+    <label>Pays :</label><input id="country" value="Canada"><br>
+    <label>Adresse :</label><input id="address" value="201, rue Président-Kennedy"><br>
+    <label>Code postal :</label><input id="postal" value="G7X 3Y7"><br>
+    <label>Ville :</label><input id="city" value="Chicoutimi"><br>
+    <label>Province :</label><input id="province" value="QC"><br>
+    <button onclick="ajouterAdresse()">Enregistrer l'adresse</button>
+    <div id="adresse"></div>
+  </section>
+
+  <section>
+    <h2>4. Paiement</h2>
+    <label>N° commande :</label><input id="payOrderId" type="number"><br>
+    <label>N° carte :</label><input id="cardNumber" value="4242 4242 4242 4242"><br>
+    <button onclick="payer()">Payer</button>
+    <div id="paiement"></div>
+  </section>
+
+  <section>
+    <h2>5. Consulter une commande</h2>
+    <label>N° commande :</label><input id="getOrderId" type="number"><br>
+    <button onclick="consulter()">Consulter</button>
+    <div id="consultation"></div>
+  </section>
+
+  <script>
+    // Affiche une commande sous forme de tableau lisible
+    function afficherCommande(divId, data, status) {
+      const div = document.getElementById(divId);
+
+      if (status === 202) {
+        div.innerHTML = '<p><span class="statut attente">⏳ Paiement en cours...</span></p>';
+        return;
+      }
+      if (!data || !data.order) {
+        // erreur (422, 409, 404...) -> on montre le message
+        const msg = data && data.errors ? JSON.stringify(data.errors, null, 2) : "Erreur";
+        div.innerHTML = '<p><span class="statut erreur">Code ' + status + '</span></p><pre>' + msg + '</pre>';
+        return;
+      }
+
+      const o = data.order;
+      let statut;
+      if (o.paid) statut = '<span class="statut ok">✓ Payée</span>';
+      else if (o.transaction && o.transaction.error && o.transaction.error.code)
+        statut = '<span class="statut erreur">✗ Paiement refusé</span>';
+      else statut = '<span class="statut attente">Non payée</span>';
+
+      let produits = o.products.map(p => "Produit " + p.id + " × " + p.quantity).join("<br>");
+
+      div.innerHTML =
+        '<table>' +
+        '<tr><td class="cle">Commande n°</td><td>' + o.id + '</td></tr>' +
+        '<tr><td class="cle">Statut</td><td>' + statut + '</td></tr>' +
+        '<tr><td class="cle">Produits</td><td>' + produits + '</td></tr>' +
+        '<tr><td class="cle">Email</td><td>' + (o.email || '—') + '</td></tr>' +
+        '<tr><td class="cle">Prix produits</td><td>' + o.total_price + ' $</td></tr>' +
+        '<tr><td class="cle">Livraison</td><td>' + o.shipping_price + ' $</td></tr>' +
+        '<tr><td class="cle">Total avec taxes</td><td>' + (o.total_price_tax || '—') + ' $</td></tr>' +
+        '</table>';
+    }
+
+    async function chargerProduits() {
+      const rep = await fetch("/");
+      const data = await rep.json();
+      const div = document.getElementById("produits");
+      div.innerHTML = data.products.map(p =>
+        '<div class="carte">' +
+        '<div class="nom">' + p.name + '</div>' +
+        '<div class="prix">' + p.price + ' $</div>' +
+        '<div>ID: ' + p.id + '</div>' +
+        (p.in_stock ? '' : '<div class="rupture">Rupture</div>') +
+        '</div>'
+      ).join("");
+    }
+
+    async function creerCommande() {
+      const rep = await fetch("/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product: {
+            id: parseInt(document.getElementById("prodId").value),
+            quantity: parseInt(document.getElementById("prodQte").value)
+          }
+        })
+      });
+      const data = await rep.json().catch(() => ({}));
+      afficherCommande("creation", data, rep.status);
+      if (data.order) {
+        const id = data.order.id;
+        document.getElementById("orderId").value = id;
+        document.getElementById("payOrderId").value = id;
+        document.getElementById("getOrderId").value = id;
+      }
+    }
+
+    async function ajouterAdresse() {
+      const id = document.getElementById("orderId").value;
+      const rep = await fetch("/order/" + id, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          order: {
+            email: document.getElementById("email").value,
+            shipping_information: {
+              country: document.getElementById("country").value,
+              address: document.getElementById("address").value,
+              postal_code: document.getElementById("postal").value,
+              city: document.getElementById("city").value,
+              province: document.getElementById("province").value
+            }
+          }
+        })
+      });
+      const data = await rep.json().catch(() => ({}));
+      afficherCommande("adresse", data, rep.status);
+    }
+
+    async function payer() {
+      const id = document.getElementById("payOrderId").value;
+      const rep = await fetch("/order/" + id, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          credit_card: {
+            name: "John Doe",
+            number: document.getElementById("cardNumber").value,
+            expiration_year: 2026,
+            cvv: "123",
+            expiration_month: 9
+          }
+        })
+      });
+      const data = await rep.json().catch(() => ({}));
+      afficherCommande("paiement", data, rep.status);
+    }
+
+    async function consulter() {
+      const id = document.getElementById("getOrderId").value;
+      const rep = await fetch("/order/" + id);
+      const data = await rep.json().catch(() => ({}));
+      afficherCommande("consultation", data, rep.status);
+    }
+  </script>
+</body>
+</html>
