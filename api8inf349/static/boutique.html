@@ -34,7 +34,7 @@
   </style>
 </head>
 <body>
-  <h1>🛒 Boutique INF349</h1>
+  <h1>Boutique INF349</h1>
 
   <section>
     <h2>1. Produits</h2>
@@ -79,7 +79,6 @@
   </section>
 
   <script>
-    // Affiche une commande sous forme de tableau lisible
     function afficherCommande(divId, data, status) {
       const div = document.getElementById(divId);
 
@@ -88,7 +87,6 @@
         return;
       }
       if (!data || !data.order) {
-        // erreur (422, 409, 404...) -> on montre le message
         const msg = data && data.errors ? JSON.stringify(data.errors, null, 2) : "Erreur";
         div.innerHTML = '<p><span class="statut erreur">Code ' + status + '</span></p><pre>' + msg + '</pre>';
         return;
