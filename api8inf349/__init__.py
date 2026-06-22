@@ -62,6 +62,13 @@ def create_app(skip_product_load=False):
     @app.route("/boutique")
     def boutique_page():
         return send_from_directory(app.static_folder, "boutique.html")
+    
+    @app.cli.command("worker")
+    def worker():
+        from rq import SimpleWorker
+        from .cache import task_queue, r
+        w = SimpleWorker([task_queue], connection=r)
+        w.work()
 
 
     from .routes import bp
