@@ -1,86 +1,148 @@
-INF349 Projet de session — Première Partie
+# Projet de session INF349 — API REST de commandes
 
-Équipe : Corentin Carvalho · Ahmed Boumaiza · Thomas Lempereur
+Application Web (Flask) responsable de prendre des commandes Internet et de
+gérer leur paiement. Cette deuxième remise ajoute PostgreSQL, un cache Redis,
+le paiement en arrière-plan (RQ), une interface HTML et un déploiement Docker.
 
+## Prérequis
 
-Objectifs:
+- Python 3.6 ou plus récent
+- Docker et Docker Compose (pour PostgreSQL et Redis)
 
-• Se familiariser avec le développement Web
-• Développer une API REST
-• Utiliser des services Web distants
-• S'assurer de la résilience et de la performance d'une application Web
-• Déployer une application Web
+## Architecture
 
+- `api8inf349/` : le code de l'application
+  - `__init__.py` : création de l'application Flask, commandes `init-db` et `worker`
+  - `models.py` : modèles de la base de données (peewee / PostgreSQL)
+  - `routes.py` : les routes de l'API REST
+  - `products.py` : récupération des produits depuis le service distant
+  - `payment.py` : communication avec le service de paiement distant
+  - `cache.py` : connexion Redis, cache des commandes et file de tâches RQ
+  - `tasks.py` : tâche de paiement exécutée en arrière-plan par le worker
+  - `static/` : pages HTML d'interaction avec l'API
+- `Dockerfile` : image Docker de l'application
+- `docker-compose.yml` : lance PostgreSQL 12 et Redis 5
+- `requirements.txt` : dépendances Python
 
-Structure du projet :
+## Variables d'environnement
 
-Web/
-├── inf349/
-│   ├── __init__.py       # Factory Flask, chargement des produits au démarrage
-│   ├── models.py         # Modèles Peewee  tables de la base de données  (Product, Order, ShippingInformation, CreditCard, Transaction)
-│   ├── routes.py         # Endpoints API REST et ce qu'elles font
-│   ├── payment.py        # Communication avec le service de paiement distant
-│   └── products.py       # Récupération des produits depuis le service distant
-|
-├── Static
-│    └── test.hmtl         # Page de test manuel
-└── test_app.py             # Test automatique
+L'application est configurée par les variables d'environnement suivantes :
 
+| Variable      | Description                       | Exemple                  |
+|---------------|-----------------------------------|--------------------------|
+| `FLASK_APP`   | Nom de l'application              | `api8inf349`             |
+| `FLASK_DEBUG` | Mode debug                        | `True`                   |
+| `DB_HOST`     | Hôte PostgreSQL                   | `localhost`              |
+| `DB_USER`     | Utilisateur PostgreSQL            | `user`                   |
+| `DB_PASSWORD` | Mot de passe PostgreSQL           | `pass`                   |
+| `DB_PORT`     | Port PostgreSQL                   | `5432`                   |
+| `DB_NAME`     | Nom de la base de données         | `api8inf349`             |
+| `REDIS_URL`   | URL de connexion à Redis          | `redis://localhost`      |
 
+## Installation et lancement
 
+### 1. Lancer PostgreSQL et Redis
 
-Installation:
+```
+docker compose up -d
+```
 
-Installer les dépendances
-pip install flask peewee pytest pytest-flask
+Cette commande démarre PostgreSQL 12 (port 5432) et Redis 5 (port 6379).
 
+### 2. Créer un environnement virtuel et installer les dépendances
 
+```
+python -m venv venv
+venv\Scripts\activate        (Windows)
+source venv/bin/activate     (macOS / Linux)
+pip install -r requirements.txt
+```
 
+### 3. Définir les variables d'environnement
 
-Lancement:
+**Windows (PowerShell) :**
+```
+$env:FLASK_APP="api8inf349"
+$env:FLASK_DEBUG="True"
+$env:DB_HOST="localhost"
+$env:DB_USER="user"
+$env:DB_PASSWORD="pass"
+$env:DB_PORT="5432"
+$env:DB_NAME="api8inf349"
+$env:REDIS_URL="redis://localhost"
+```
 
-powershell
-1. Initialiser la base de données
-$env:FLASK_DEBUG="True"; $env:FLASK_APP="inf349"; flask init-db
+### 4. Initialiser la base de données
 
-2. Lancer le serveur
-$env:FLASK_DEBUG="True"; $env:FLASK_APP="inf349"; flask run
+```
+flask init-db
+```
 
+Cette commande crée les tables et charge les produits depuis le service distant.
 
-Les produits en Json est accessible à http://127.0.0.1:5000
+### 5. Lancer l'application
 
-L'interface web est accessible à http://127.0.0.1:5000/test
+```
+flask run
+```
 
+L'application est accessible sur http://127.0.0.1:5000
 
-Lancer les tests:
+### 6. Lancer le worker (dans un second terminal)
 
-Des tests sont dans web via : http://127.0.0.1:5000/test
+Le worker traite les paiements en arrière-plan. Il faut définir les mêmes
+variables d'environnement dans ce terminal, puis :
 
-Des tests peuvent aussi lancer avec : pytest test_app.py -v
+```
+flask worker
+```
 
-il y a 14 test different :
-    - test_liste_produits
-    - test_creer_commande_sans_produit
-    - test_creer_commande_quantite_invalide
-    - test_creer_commande_produit_en_rupture
-    - test_creer_commande_succes 
-    - test_consulter_commande
-    - test_consulter_commande_inexistante
-    - test_put_information_client
-    - test_put_champ_manquant
-    - test_put_carte_et_infos_ensemble
-    - test_paiement_succes
-    - test_paiement_carte_refusee
-    - test_paiement_sans_adresse
-    - test_paiement_deja_payee
+Le worker doit tourner en même temps que l'application pour que les paiements
+soient traités.
 
+## Interface HTML
 
+Une interface est disponible pour interagir avec l'API :
 
-Le parcours complet se fait en plusieurs étapes de l'achat:
+- http://127.0.0.1:5000/boutique
 
-Charger les produits pour les afficher
-Choisir la commande et voir son status (payé ou non)
-Choisir un produit (ID) et la quantiter 
-Remplir l'adresse de livraison et la province (QC, ON, AB, BC ou NS) (rempli automatiquement pour le test)
-Payer avec la carte (exemple : 4242 4242 4242 4242 — CVV 123 — expiry 09/2026 ) (rempli automatiquement pour le test)
+Elle permet de consulter les produits, créer une commande (avec un ou plusieurs
+produits), saisir l'adresse de livraison, payer et consulter une commande.
 
+## Lancement avec Docker
+
+### Construire l'image
+
+```
+docker build -t api8inf349 .
+```
+
+### Lancer le conteneur
+
+PostgreSQL et Redis doivent tourner (via `docker compose up -d`). Comme
+l'application tourne dans un conteneur, on remplace `localhost` par
+`host.docker.internal` pour joindre PostgreSQL et Redis :
+
+```
+docker run -p 5000:5000 -e REDIS_URL=redis://host.docker.internal -e DB_HOST=host.docker.internal -e DB_USER=user -e DB_PASSWORD=pass -e DB_PORT=5432 -e DB_NAME=api8inf349 api8inf349
+```
+
+## Routes de l'API
+
+| Méthode | Route                  | Description                                  |
+|---------|------------------------|----------------------------------------------|
+| GET     | `/`                    | Liste des produits                           |
+| POST    | `/order`               | Créer une commande (un ou plusieurs produits)|
+| GET     | `/order/<id>`          | Consulter une commande                       |
+| PUT     | `/order/<id>`          | Ajouter email + adresse, ou payer            |
+
+## Fonctionnalités
+
+- Création de commande avec un ou plusieurs produits
+- Calcul automatique des taxes (par province) et des frais d'expédition
+- Paiement par carte de crédit via un service distant
+- Paiement traité en arrière-plan (RQ) : retourne `202` pendant le traitement,
+  `409` si un paiement est déjà en cours
+- Mise en cache des commandes payées dans Redis (consultables même sans
+  PostgreSQL)
+- Persistance des erreurs de paiement dans la transaction
