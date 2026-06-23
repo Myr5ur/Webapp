@@ -1,7 +1,7 @@
 import pytest
 
-from inf349 import create_app
-from inf349.models import (
+from api8inf349 import create_app
+from api8inf349.models import (
     DATABASE, Product, Order, ShippingInformation, CreditCard, Transaction,
     ALL_MODELS,
 )
@@ -176,7 +176,7 @@ def _commande_avec_adresse(client):
 
 
 def test_paiement_succes(client, monkeypatch):
-    monkeypatch.setattr("inf349.routes.pay",
+    monkeypatch.setattr("api8inf349.routes.pay",
                         lambda cc, montant: (True, REPONSE_SUCCES))
 
     location = _commande_avec_adresse(client)
@@ -189,7 +189,7 @@ def test_paiement_succes(client, monkeypatch):
 
 
 def test_paiement_carte_refusee(client, monkeypatch):
-    monkeypatch.setattr("inf349.routes.pay",
+    monkeypatch.setattr("api8inf349.routes.pay",
                         lambda cc, montant: (False, REPONSE_REFUS))
 
     location = _commande_avec_adresse(client)
@@ -200,7 +200,7 @@ def test_paiement_carte_refusee(client, monkeypatch):
 
 
 def test_paiement_sans_adresse(client, monkeypatch):
-    monkeypatch.setattr("inf349.routes.pay",
+    monkeypatch.setattr("api8inf349.routes.pay",
                         lambda cc, montant: (True, REPONSE_SUCCES))
 
     creation = client.post("/order", json={"product": {"id": 1, "quantity": 1}})
@@ -212,12 +212,12 @@ def test_paiement_sans_adresse(client, monkeypatch):
 
 
 def test_paiement_deja_payee(client, monkeypatch):
-    monkeypatch.setattr("inf349.routes.pay",
+    monkeypatch.setattr("api8inf349.routes.pay",
                         lambda cc, montant: (True, REPONSE_SUCCES))
 
     location = _commande_avec_adresse(client)
-    client.put(location, json={"credit_card": CARTE})           # 1er paiement
-    resp = client.put(location, json={"credit_card": CARTE})    # 2e paiement
+    client.put(location, json={"credit_card": CARTE})          
+    resp = client.put(location, json={"credit_card": CARTE})    
 
     assert resp.status_code == 422
     assert resp.get_json()["errors"]["order"]["code"] == "already-paid"

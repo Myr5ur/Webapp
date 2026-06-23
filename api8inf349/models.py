@@ -1,5 +1,4 @@
 import os
-
 from peewee import (
     PostgresqlDatabase, Model, IntegerField, CharField, TextField,
     FloatField, BooleanField, AutoField, ForeignKeyField,
@@ -29,7 +28,6 @@ class Product(BaseModel):
     image = CharField()
 
 
-
 class ShippingInformation(BaseModel):
     country = CharField()
     address = CharField()
@@ -47,24 +45,32 @@ class CreditCard(BaseModel):
 
 
 class Transaction(BaseModel):
-    id = CharField(primary_key=True)  
-    success = BooleanField()
-    amount_charged = IntegerField(null=True)
+   
+    id = AutoField()
+    remote_id = CharField(null=True)
+    success = BooleanField(default=False)
+    amount_charged = FloatField(null=True)
+    error_code = CharField(null=True)
+    error_name = CharField(null=True)
 
 
 class Order(BaseModel):
     id = AutoField()
     email = CharField(null=True)
     paid = BooleanField(default=False)
+
+    processing = BooleanField(default=False)
     total_price = FloatField(default=0)
     shipping_price = FloatField(default=0)
     shipping_information = ForeignKeyField(ShippingInformation, null=True)
     credit_card = ForeignKeyField(CreditCard, null=True)
     transaction = ForeignKeyField(Transaction, null=True)
 
+
 class OrderProduct(BaseModel):
     order = ForeignKeyField(Order, backref="items")
     product = ForeignKeyField(Product)
     quantity = IntegerField()
+
 
 ALL_MODELS = [Product, ShippingInformation, CreditCard, Transaction, Order, OrderProduct]
