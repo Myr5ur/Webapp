@@ -44,8 +44,13 @@
 
   <section>
     <h2>Créer une commande</h2>
-    <label>ID produit :</label><input id="prodId" type="number" value="1"><br>
-    <label>Quantité :</label><input id="prodQte" type="number" value="1"><br>
+    <div id="lignesProduits">
+      <div class="ligne-produit">
+        <label>ID produit :</label><input type="number" class="prod-id" value="1">
+        <label>Quantité :</label><input type="number" class="prod-qte" value="1">
+      </div>
+    </div>
+    <button onclick="ajouterLigne()">+ Ajouter un produit</button>
     <button onclick="creerCommande()">Créer la commande</button>
     <div id="creation"></div>
   </section>
@@ -72,7 +77,7 @@
   </section>
 
   <section>
-    <h2>5. Consulter une commande</h2>
+    <h2>Consulter une commande</h2>
     <label>N° commande :</label><input id="getOrderId" type="number"><br>
     <button onclick="consulter()">Consulter</button>
     <div id="consultation"></div>

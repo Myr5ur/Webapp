@@ -8,7 +8,7 @@ from peewee import (
 DATABASE = PostgresqlDatabase(
     os.environ.get("DB_NAME", "api8inf349"),
     user=os.environ.get("DB_USER", "user"),
-    password=os.environ.get("DB_PASSWORD", "password"),
+    password=os.environ.get("DB_PASSWORD", "pass"),
     host=os.environ.get("DB_HOST", "localhost"),
     port=int(os.environ.get("DB_PORT", 5432)),
 )
