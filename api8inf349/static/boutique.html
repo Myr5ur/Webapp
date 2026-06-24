@@ -31,6 +31,7 @@
     .erreur { background: #fadbd8; color: #c0392b; }
     pre { background: #f8f9fa; padding: 10px; border-radius: 5px; font-size: 12px;
           overflow-x: auto; color: #777; }
+    .ligne-produit { margin: 6px 0; }
   </style>
 </head>
 <body>
@@ -44,8 +45,13 @@
 
   <section>
     <h2>Créer une commande</h2>
-    <label>ID produit :</label><input id="prodId" type="number" value="1"><br>
-    <label>Quantité :</label><input id="prodQte" type="number" value="1"><br>
+    <div id="lignesProduits">
+      <div class="ligne-produit">
+        <label>ID produit :</label><input type="number" class="prod-id" value="1">
+        <label>Quantité :</label><input type="number" class="prod-qte" value="1">
+      </div>
+    </div>
+    <button onclick="ajouterLigne()">+ Ajouter un produit</button>
     <button onclick="creerCommande()">Créer la commande</button>
     <div id="creation"></div>
   </section>
@@ -72,23 +78,21 @@
   </section>
 
   <section>
-    <h2>5. Consulter une commande</h2>
+    <h2>Consulter une commande</h2>
     <label>N° commande :</label><input id="getOrderId" type="number"><br>
     <button onclick="consulter()">Consulter</button>
     <div id="consultation"></div>
   </section>
 
   <script>
-    // Affiche une commande sous forme de tableau lisible
     function afficherCommande(divId, data, status) {
       const div = document.getElementById(divId);
 
       if (status === 202) {
-        div.innerHTML = '<p><span class="statut attente">⏳ Paiement en cours...</span></p>';
+        div.innerHTML = '<p><span class="statut attente"> Paiement en cours...</span></p>';
         return;
       }
       if (!data || !data.order) {
-        // erreur (422, 409, 404...) -> on montre le message
         const msg = data && data.errors ? JSON.stringify(data.errors, null, 2) : "Erreur";
         div.innerHTML = '<p><span class="statut erreur">Code ' + status + '</span></p><pre>' + msg + '</pre>';
         return;
@@ -129,16 +133,29 @@
       ).join("");
     }
 
+    function ajouterLigne() {
+      const div = document.createElement("div");
+      div.className = "ligne-produit";
+      div.innerHTML =
+        '<label>ID produit :</label><input type="number" class="prod-id" value="1">' +
+        '<label>Quantité :</label><input type="number" class="prod-qte" value="1">';
+      document.getElementById("lignesProduits").appendChild(div);
+    }
+
     async function creerCommande() {
+      const lignes = document.querySelectorAll(".ligne-produit");
+      const produits = [];
+      lignes.forEach(ligne => {
+        produits.push({
+          id: parseInt(ligne.querySelector(".prod-id").value),
+          quantity: parseInt(ligne.querySelector(".prod-qte").value)
+        });
+      });
+
       const rep = await fetch("/order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          product: {
-            id: parseInt(document.getElementById("prodId").value),
-            quantity: parseInt(document.getElementById("prodQte").value)
-          }
-        })
+        body: JSON.stringify({ products: produits })
       });
       const data = await rep.json().catch(() => ({}));
       afficherCommande("creation", data, rep.status);
@@ -172,7 +189,7 @@
       afficherCommande("adresse", data, rep.status);
     }
 
-    async function payer() {
+async function payer() {
       const id = document.getElementById("payOrderId").value;
       const rep = await fetch("/order/" + id, {
         method: "PUT",
@@ -187,8 +204,17 @@
           }
         })
       });
-      const data = await rep.json().catch(() => ({}));
-      afficherCommande("paiement", data, rep.status);
+
+      if (rep.status !== 202) {
+        const data = await rep.json().catch(() => ({}));
+        afficherCommande("paiement", data, rep.status);
+        return;
+      }
+
+      document.getElementById("paiement").innerHTML =
+        '<p><span class="statut attente">⏳ Paiement en cours...</span></p>';
+
+      verifierPaiement(id, 0);
     }
 
     async function consulter() {

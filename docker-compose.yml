@@ -3,7 +3,7 @@ services:
     image: postgres:12
     environment:
       POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: pass
       POSTGRES_DB: api8inf349
     ports:
       - "5432:5432"

@@ -17,13 +17,11 @@ def appel(methode, chemin, corps=None):
         return e.code, json.loads(e.read().decode("utf-8", errors="replace"))
 
 
-# 1. Créer une commande
 code, contenu = appel("POST", "/order", {"product": {"id": 1, "quantity": 1}})
 order_id = contenu["order"]["id"]
 chemin = f"/order/{order_id}"
 print(f"Commande créée, id = {order_id}")
 
-# 2. Ajouter l'adresse
 appel("PUT", chemin, {
     "order": {
         "email": "jgnault@uqac.ca",
@@ -35,7 +33,6 @@ appel("PUT", chemin, {
 })
 print("Adresse ajoutée")
 
-# 3. Payer (carte valide) -> la commande doit être mise en cache
 code, contenu = appel("PUT", chemin, {
     "credit_card": {
         "name": "John Doe", "number": "4242 4242 4242 4242",
@@ -44,7 +41,6 @@ code, contenu = appel("PUT", chemin, {
 })
 print(f"Paiement -> code {code}, paid =", contenu.get("order", {}).get("paid"))
 
-# 4. Consulter la commande -> doit venir du cache Redis
 code, contenu = appel("GET", chemin)
 print(f"Consultation -> code {code}")
 print(json.dumps(contenu["order"], indent=2, ensure_ascii=False))
