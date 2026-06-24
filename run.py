@@ -1,23 +1,9 @@
-"""
-Script de lancement complet du projet :
-1. Démarre les conteneurs Docker (Postgres + Redis)
-2. Attend que Postgres soit prêt à accepter des connexions
-3. Définit les variables d'environnement
-4. Initialise la base de données (création des tables + chargement des produits)
-5. Lance le serveur Flask
-
-Utilisation :
-    python run.py
-"""
-
 import os
 import subprocess
 import time
 import sys
 
-# ----------------------------------------------------------------------
-# 1. Variables d'environnement (doivent correspondre au docker-compose.yml)
-# ----------------------------------------------------------------------
+
 os.environ["DB_HOST"] = "localhost"
 os.environ["DB_USER"] = "user"
 os.environ["DB_PASSWORD"] = "password"
@@ -25,8 +11,6 @@ os.environ["DB_NAME"] = "api8inf349"
 os.environ["DB_PORT"] = "5432"
 os.environ["REDIS_URL"] = "redis://localhost:6379"
 os.environ["FLASK_APP"] = "api8inf349"
-
-# Évite les soucis d'encodage des messages PostgreSQL sous Windows
 os.environ["PGCLIENTENCODING"] = "UTF8"
 os.environ.setdefault("LC_MESSAGES", "C")
 
