@@ -221,49 +221,7 @@ def update_order(order_id):
         return jsonify({"order": order_to_dict(order)})
     
     
-#    if "credit_card" in data:
-        if not order.email or order.shipping_information is None:
-            return error_response(
-                "order", "missing-fields",
-                "Le paiement d'une commande nécessite que les informations de livraison soient déjà complétées", 422)
-        
-        if order.paid:
-            return error_response(
-                "order", "already-paid",
-                "Cette commande a déjà été payée", 422)
-        
-        rate = get_tax_rate(order.shipping_information.province) or 0
-        montant = round(order.total_price * (1 + rate) + order.shipping_price,2)
-        
-        succes, donnees = pay(data["credit_card"], montant)
 
-        if not succes:
-            return jsonify(donnees), 422
-        
-        cc_data = donnees["credit_card"]
-        carte = CreditCard.create(
-            name=cc_data["name"],
-            first_digits=str(cc_data["first_digits"]),
-            last_digits=str(cc_data["last_digits"]),
-            expiration_year=cc_data["expiration_year"],
-            expiration_month=cc_data["expiration_month"],
-        )
-
-        tr_data = donnees["transaction"]
-        transaction = Transaction.create(
-            id=tr_data["id"],
-            success=bool(tr_data["success"]),
-            amount_charged=tr_data["amount_charged"],
-        )
-
-        order.credit_card = carte
-        order.transaction = transaction
-        order.paid = True
-        order.save()
-
-        order_dict = order_to_dict(order)
-        cache_order(order.id, order_dict)
-        return jsonify({"order": order_dict})
     
     if "credit_card" in data:
         if not order.email or order.shipping_information is None:
