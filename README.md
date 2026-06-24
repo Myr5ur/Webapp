@@ -220,7 +220,7 @@ serveur et le worker roulent :
 - **essais_multi.py** : vérifie la création d'une commande avec plusieurs
   produits, ainsi que la rétrocompatibilité avec le format à un seul produit
 
-## Le parcours complet
+## Le parcours complet de notre application
 
 Le parcours complet se fait en plusieurs étapes de l'achat :
 
@@ -233,7 +233,7 @@ Le parcours complet se fait en plusieurs étapes de l'achat :
    jusqu'à l'obtention du code 200 pour voir le résultat (payée ou erreur de
    paiement)
 
-## Nouveautés de la deuxième remise
+## Nouveautés de la deuxième partie
 
 - Migration de la base de données de SQLite vers PostgreSQL (peewee)
 - Ajout de Redis pour la mise en cache des commandes payées et pour la file de
