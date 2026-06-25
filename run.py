@@ -37,7 +37,6 @@ def start_docker():
 def wait_for_postgres(host="localhost", port=5432, user="user",
                        password="password", dbname="api8inf349",
                        timeout=30):
-    # Attend que Postgres accepte les connexions avant de continuer
     import psycopg2
 
     start = time.time()

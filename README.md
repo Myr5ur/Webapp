@@ -176,31 +176,7 @@ docker run -p 5000:5000 -e REDIS_URL=redis://host.docker.internal -e DB_HOST=hos
   PostgreSQL)
 - Persistance des erreurs de paiement dans la transaction
 
-## Lancer les tests
 
-Des tests sont accessibles en web via : http://127.0.0.1:5000/test
-
-Des tests peuvent aussi être lancés avec :
-
-```
-pytest test_app.py -v
-```
-
-Il y a 14 tests différents :
-- test_liste_produits
-- test_creer_commande_sans_produit
-- test_creer_commande_quantite_invalide
-- test_creer_commande_produit_en_rupture
-- test_creer_commande_succes
-- test_consulter_commande
-- test_consulter_commande_inexistante
-- test_put_information_client
-- test_put_champ_manquant
-- test_put_carte_et_infos_ensemble
-- test_paiement_succes
-- test_paiement_carte_refusee
-- test_paiement_sans_adresse
-- test_paiement_deja_payee
 
 ### Scripts de test manuel (partie 2)
 
